@@ -4,7 +4,7 @@
 ;; already, so an AWS SDK would trade a portable library for a JVM-or-Node-only
 ;; one. See README "Why no AWS SDK".
 {:paths ["src"]
- :deps {io.github.kotoba-lang/sigv4 {:git/sha "58564dc77fc97ea442838420b32c0369e33377e7"}}
+ :deps {io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner

@@ -1,10 +1,11 @@
 (ns storj.core
   "Signed S3 operations against a Storj Gateway-MT endpoint.
 
-  This namespace owns request *composition* — it never opens a socket and never
-  computes a digest. SigV4 itself is `kotoba-lang/sigv4`; this namespace is
-  the S3 object surface over it. You supply an `ICrypto` (`sigv4.crypto` has a
-  default) and an `IHttp`; it supplies correctly signed requests.
+  This namespace never opens a socket, never computes a digest, and no longer
+  composes a signature either — `sigv4.request` does that, for every consumer in
+  this workspace. What is left here is the Storj object surface: validated
+  endpoint policy, the operations, 404-as-nil, and ListObjectsV2 parsing. You
+  supply an `ICrypto` (`sigv4.crypto` has a default) and an `IHttp`.
 
   **One code path, two runtimes.** JVM crypto is synchronous, `crypto.subtle` is
   Promise-based. Rather than fork the signing logic, everything is composed
@@ -13,8 +14,8 @@
   ClojureScript they return Promises of the same values — the shape is
   identical, only the wrapper differs. That mirrors `kotoba.lang.ipfs`."
   (:require [clojure.string :as str]
-            [sigv4.core :as v4]
             [sigv4.protocols :as p]
+            [sigv4.request :as sigv4]
             [storj.gateway :as gw]
             [storj.protocols :as http]))
 
@@ -39,58 +40,22 @@
 
 ;; ── signing ──────────────────────────────────────────────────────────────────
 
-(defn- base-headers [{:keys [host]} payload-hash long-date extra]
-  (merge {"host"                 host
-          "x-amz-content-sha256" payload-hash
-          "x-amz-date"           long-date}
-         extra))
-
-(defn- derive-signature
-  "Fold the HMAC ladder and sign `sts`. → hex signature (or a thenable of one).
-
-  `:seed` is the `\"AWS4\"`-prefixed secret and `:steps` the four ladder inputs;
-  `sigv4.core` names them so this fold never has to know the order."
-  [crypto secret-key short-date region sts]
-  (let [{:keys [seed steps]} (v4/signing-key-chain secret-key short-date region)]
-    (then (reduce (fn [k step] (then k #(p/-hmac crypto % step))) seed steps)
-          (fn [signing-key]
-            (then (p/-hmac crypto signing-key sts)
-                  #(p/-hex crypto %))))))
-
 (defn sign
   "Sign one request against `config`. → `{:method :url :headers :body}`.
 
-  `req` is `{:method :key :query :headers :body :payload-hash :now}`:
-  `:now` is an ISO-8601 instant *you* supply (the library reads no clock, which
-  is what makes signing reproducible and testable); `:payload-hash` defaults to
-  the SHA-256 of `:body`, or the empty-string hash when there is no body."
+  `req` is `{:method :key :query :headers :body :payload-hash :now}`. `:now` is
+  an ISO-8601 instant *you* supply — the signer reads no clock, which is what
+  makes signing reproducible and testable.
+
+  Composition is `sigv4.request/signed`; what this adds is the validated Storj
+  config, so callers pass a bucket key rather than an endpoint and credentials."
   [{:keys [config crypto]} {:keys [method key query headers body payload-hash now]}]
-  (let [{:keys [bucket region origin access-key secret-key]} config
-        {:keys [long short]} (v4/amz-dates now)
-        path (v4/object-path bucket key)
-        qs   (v4/canonical-query query)]
-    (then (or payload-hash
-              (if (some? body) (p/-sha256-hex crypto body) v4/empty-payload-sha256))
-          (fn [payload-hash]
-            (let [headers (base-headers config payload-hash long headers)
-                  {:keys [canonical-request signed-headers]}
-                  (v4/canonical-request {:method       method
-                                         :path         path
-                                         :query        qs
-                                         :headers      headers
-                                         :payload-hash payload-hash})
-                  scope (v4/credential-scope short region)]
-              (then (p/-sha256-hex crypto canonical-request)
-                    (fn [cr-hash]
-                      (then (derive-signature crypto secret-key short region
-                                              (v4/string-to-sign long scope cr-hash))
-                            (fn [signature]
-                              {:method  (str/upper-case (name method))
-                               :url     (str origin path (when (seq qs) (str "?" qs)))
-                               :headers (assoc headers "authorization"
-                                               (v4/authorization-header
-                                                access-key scope signed-headers signature))
-                               :body    body})))))))))
+  (sigv4/signed crypto (merge (select-keys config [:endpoint :bucket :region])
+                              {:access-key (:access-key config)
+                               :secret-key (:secret-key config)
+                               :method method :key key :query query
+                               :headers headers :body body
+                               :payload-hash payload-hash :now now})))
 
 (defn presign
   "Presigned URL for `key` — a bare `https://…?X-Amz-…` string anyone can fetch
@@ -100,29 +65,11 @@
   Only the `host` header is signed, so the URL works from a browser."
   [{:keys [config crypto]} {:keys [method key query now expires-seconds]
                             :or   {method :get expires-seconds 3600}}]
-  (let [{:keys [bucket region origin host access-key secret-key]} config
-        {:keys [long short]} (v4/amz-dates now)
-        scope  (v4/credential-scope short region)
-        path   (v4/object-path bucket key)
-        params (merge query
-                      (v4/presign-params {:key-id          access-key
-                                          :scope           scope
-                                          :long-date       long
-                                          :expires-seconds expires-seconds
-                                          :signed-headers  "host"}))
-        qs     (v4/canonical-query params)
-        {:keys [canonical-request]}
-        (v4/canonical-request {:method       method
-                               :path         path
-                               :query        qs
-                               :headers      {"host" host}
-                               :payload-hash v4/unsigned-payload})]
-    (then (p/-sha256-hex crypto canonical-request)
-          (fn [cr-hash]
-            (then (derive-signature crypto secret-key short region
-                                    (v4/string-to-sign long scope cr-hash))
-                  (fn [signature]
-                    (str origin path "?" qs "&X-Amz-Signature=" signature)))))))
+  (sigv4/presigned crypto (merge (select-keys config [:endpoint :bucket :region])
+                                 {:access-key (:access-key config)
+                                  :secret-key (:secret-key config)
+                                  :method method :key key :query query
+                                  :now now :expires-seconds expires-seconds})))
 
 ;; ── operations ───────────────────────────────────────────────────────────────
 
