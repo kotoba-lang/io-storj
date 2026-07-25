@@ -2,7 +2,7 @@
   "Storj Gateway-MT configuration — endpoints, defaults, and validation.
 
   Storj's S3-compatible edge (`gateway.storjshare.io`) speaks ordinary S3 with
-  SigV4, so the wire format is `storj.sigv4`'s problem and this namespace only
+  SigV4, so the wire format is `kotoba-lang/sigv4`'s problem and this namespace only
   owns what is *Storj-specific*: which hosts are legitimate gateways, what a
   Storj S3 credential looks like, and which defaults to fill in.
 

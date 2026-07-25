@@ -1,9 +1,10 @@
-;; No runtime dependencies. SigV4 is string manipulation plus SHA-256/HMAC, and
-;; both are on every target runtime already (javax.crypto / crypto.subtle) — so
-;; pulling in an S3 SDK would trade a portable 500-line library for a
-;; JVM-or-Node-only one. See README "Why no AWS SDK".
+;; AWS SigV4 lives in kotoba-lang/sigv4 — this workspace had eight copies of it
+;; before that library existed, and they had already diverged (see its README).
+;; No other runtime dependency: SHA-256 and HMAC are on every target runtime
+;; already, so an AWS SDK would trade a portable library for a JVM-or-Node-only
+;; one. See README "Why no AWS SDK".
 {:paths ["src"]
- :deps {}
+ :deps {io.github.kotoba-lang/sigv4 {:git/sha "58564dc77fc97ea442838420b32c0369e33377e7"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner

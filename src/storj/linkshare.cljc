@@ -18,7 +18,7 @@
   Create the restricted key with `uplink share --readonly --url --not-after …`
   (or the satellite UI) and pass the resulting access key here."
   (:require [clojure.string :as str]
-            [storj.sigv4 :as v4]))
+            [sigv4.core :as v4]))
 
 (def endpoints
   "Known linksharing hosts. `:global` is geo-routed to the nearest edge; the

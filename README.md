@@ -12,18 +12,20 @@ an S3 surface.
 
 | Namespace | What it owns |
 |---|---|
-| `storj.sigv4` | AWS SigV4, the pure half — encoding, canonicalization, string-to-sign. No crypto, no clock, no I/O. |
 | `storj.gateway` | Storj-specific config: endpoints, defaults, validation. |
 | `storj.core` | Signed requests and object operations over injected `ICrypto` + `IHttp`. |
 | `storj.linkshare` | Public Linksharing URL construction. |
-| `storj.crypto` | Optional default `ICrypto` (`javax.crypto` / WebCrypto). |
-| `storj.protocols` | The two host seams: `ICrypto`, `IHttp`. |
+| `storj.protocols` | The transport seam: `IHttp`. |
+
+AWS SigV4 itself is [`kotoba-lang/sigv4`](https://github.com/kotoba-lang/sigv4)
+— shared with the other seven places in this workspace that sign S3 requests.
+`sigv4.crypto` supplies the default `ICrypto`.
 
 ## Usage
 
 ```clojure
 (require '[storj.core :as storj]
-         '[storj.crypto :as crypto])
+         '[sigv4.crypto :as crypto])
 
 (def client
   (storj/client {:bucket     "my-bucket"
@@ -63,10 +65,10 @@ the wire:
 
 **The library performs zero network I/O and computes zero digests.** It builds
 signed request maps and hands them to you. Both impure ingredients are
-protocols in `storj.protocols`, so the same code runs on a JVM, in a Cloudflare
-Worker, under nbb, or behind a WASM capability import — matching the
-`kotoba.lang.ipfs` contract (ADR-2606302300 §Step-1: pure `.cljc`, zero network
-I/O, zero vendor SDK).
+protocols — `IHttp` here, `ICrypto` in `sigv4.protocols` — so the same code runs
+on a JVM, in a Cloudflare Worker, under nbb, or behind a WASM capability import,
+matching the `kotoba.lang.ipfs` contract (ADR-2606302300 §Step-1: pure `.cljc`,
+zero network I/O, zero vendor SDK).
 
 **No clock, either.** Every signing entry point takes `:now` as an ISO-8601
 string. That is what makes signatures reproducible, and it is why the reference
@@ -87,9 +89,8 @@ requirements of virtual-hosted style.
 An S3 SDK would make this a JVM-only or Node-only library, which forfeits the
 runtimes the kotoba-lang ladder actually targets (`kotoba wasm` > `clojurewasm`
 > ClojureScript > nbb). SigV4 is string manipulation plus SHA-256 and
-HMAC-SHA-256, and every target runtime already has both. The trade is ~500 lines
-of library for portability — and the string layer, the part that is genuinely
-easy to get wrong, is pinned by AWS's own published vectors.
+HMAC-SHA-256, and every target runtime already has both — and now it is one
+shared library rather than a copy per consumer.
 
 ## Correctness
 
@@ -97,27 +98,26 @@ SigV4 fails silently: a wrong byte anywhere produces a valid-looking request and
 an opaque `403 SignatureDoesNotMatch`. So the tests do not assert our own
 output back to us.
 
-- **AWS reference vectors.** `sigv4_test` and `crypto_test` assert the
-  canonical request, string-to-sign, and **signature** that AWS documents for
-  its two worked S3 examples — header-based auth
-  (`f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41`) and
-  query-string auth
-  (`aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404`).
-  A regression means we diverged from the spec, not from yesterday.
+- **AWS reference vectors** live with the signer, in `kotoba-lang/sigv4`: the
+  canonical request, string-to-sign and **signature** AWS documents for its two
+  worked S3 examples, asserted byte for byte on both runtimes.
 - **Independent cross-check.** The request and presign signatures in
   `core_test` were produced by a separate implementation driven straight from
-  the spec, not captured from this library.
+  the spec, not captured from this library — so they also pin the composition
+  of this library over the signer.
 - **Two-runtime parity.** `clojure -M:test` covers the JVM. WebCrypto is
   asynchronous and therefore takes a *different path through `then`*, so a green
   JVM suite says nothing about the code that ships to browsers and Workers.
-  `nbb scripts/verify-cljs.cljs` re-runs the load-bearing assertions on
+  `scripts/verify-cljs.cljs` re-runs the load-bearing assertions on
   `crypto.subtle` and must produce byte-identical signatures. Both run in CI.
 
 ```bash
-clojure -M:test              # JVM
-nbb scripts/verify-cljs.cljs # ClojureScript / WebCrypto
+clojure -M:test                                          # JVM
+nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs   # ClojureScript / WebCrypto
 clojure -M:lint
 ```
+
+`sigv4` is a git dep, so nbb needs the resolved classpath.
 
 ## Scope
 

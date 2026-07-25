@@ -29,5 +29,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          cli: latest
       - run: npm install -g nbb
-      - run: nbb scripts/verify-cljs.cljs
+      # sigv4 is a git dep — nbb needs the resolved classpath to see it.
+      - run: nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs

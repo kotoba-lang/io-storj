@@ -5,13 +5,16 @@
   (Node's `crypto`, driven straight from the SigV4 spec) rather than by this
   library, so they are a real cross-check and not a snapshot of our own output.
 
+  SigV4 itself is covered by `kotoba-lang/sigv4`; what is tested here is the S3
+  object surface composed over it.
+
   JVM-only, because `storj.core/then` is identity-application here and the whole
   pipeline reads synchronously. The ClojureScript/Promise path is covered by
   `scripts/verify-cljs.cljs`."
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
+            [sigv4.crypto :as crypto]
             [storj.core :as storj]
-            [storj.crypto :as crypto]
             [storj.protocols :as p]))
 
 (def now "2026-07-25T12:00:00.000Z")

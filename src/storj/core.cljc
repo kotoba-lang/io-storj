@@ -2,8 +2,9 @@
   "Signed S3 operations against a Storj Gateway-MT endpoint.
 
   This namespace owns request *composition* — it never opens a socket and never
-  computes a digest. You supply an `ICrypto` and an `IHttp` (`storj.crypto` has
-  a default for the former); it supplies correctly signed requests.
+  computes a digest. SigV4 itself is `kotoba-lang/sigv4`; this namespace is
+  the S3 object surface over it. You supply an `ICrypto` (`sigv4.crypto` has a
+  default) and an `IHttp`; it supplies correctly signed requests.
 
   **One code path, two runtimes.** JVM crypto is synchronous, `crypto.subtle` is
   Promise-based. Rather than fork the signing logic, everything is composed
@@ -12,9 +13,10 @@
   ClojureScript they return Promises of the same values — the shape is
   identical, only the wrapper differs. That mirrors `kotoba.lang.ipfs`."
   (:require [clojure.string :as str]
+            [sigv4.core :as v4]
+            [sigv4.protocols :as p]
             [storj.gateway :as gw]
-            [storj.protocols :as p]
-            [storj.sigv4 :as v4]))
+            [storj.protocols :as http]))
 
 (defn- then
   "Apply `f` to `v`, threading through a Promise on JS. The single point where
@@ -27,7 +29,7 @@
   "Build a client from a validated gateway config plus host implementations.
 
       (client {:bucket \"b\" :access-key \"...\" :secret-key \"...\"}
-              {:crypto (storj.crypto/crypto) :http my-http})
+              {:crypto (sigv4.crypto/crypto) :http my-http})
 
   Validation happens here, once, so every later request is signed against
   known-good config."
@@ -47,7 +49,7 @@
   "Fold the HMAC ladder and sign `sts`. → hex signature (or a thenable of one).
 
   `:seed` is the `\"AWS4\"`-prefixed secret and `:steps` the four ladder inputs;
-  `storj.sigv4` names them so this fold never has to know the order."
+  `sigv4.core` names them so this fold never has to know the order."
   [crypto secret-key short-date region sts]
   (let [{:keys [seed steps]} (v4/signing-key-chain secret-key short-date region)]
     (then (reduce (fn [k step] (then k #(p/-hmac crypto % step))) seed steps)
@@ -124,8 +126,8 @@
 
 ;; ── operations ───────────────────────────────────────────────────────────────
 
-(defn- send! [{:keys [http] :as client} req]
-  (then (sign client req) #(p/-request http %)))
+(defn- send! [client req]
+  (then (sign client req) #(http/-request (:http client) %)))
 
 (defn- expect
   "Return the response when its status is in `ok`, otherwise throw with enough
