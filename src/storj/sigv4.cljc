@@ -168,12 +168,13 @@
       kService = HMAC(kRegion,  \"s3\")
       kSigning = HMAC(kService, \"aws4_request\")
 
-  → `{:secret \"AWS4<secret>\" :steps [short-date region \"s3\" \"aws4_request\"]}`.
-  The host folds its own HMAC over `:steps` starting from `:secret`, which is
-  how this namespace derives keys without owning a crypto primitive."
+  → `{:seed \"AWS4<secret>\" :steps [short-date region \"s3\" \"aws4_request\"]}`.
+  The host folds its own HMAC over `:steps` starting from `:seed`, which is how
+  this namespace derives keys without owning a crypto primitive. `:seed` is
+  named for what it is — the prefixed secret, not the secret."
   [secret short-date region]
-  {:secret (str "AWS4" secret)
-   :steps  [short-date region service terminator]})
+  {:seed  (str "AWS4" secret)
+   :steps [short-date region service terminator]})
 
 (defn authorization-header
   "The `Authorization` header value for a signed (non-presigned) request."

@@ -39,9 +39,9 @@
 (defn signing-key
   "Fold the HMAC ladder over Promises — the async mirror of the JVM reduce."
   [secret short region]
-  (let [{:keys [secret steps]} (v4/signing-key-chain secret short region)]
+  (let [{:keys [seed steps]} (v4/signing-key-chain secret short region)]
     (reduce (fn [p step] (.then p #(p/-hmac c % step)))
-            (js/Promise.resolve secret)
+            (js/Promise.resolve seed)
             steps)))
 
 (defn sign-string [secret short region sts]

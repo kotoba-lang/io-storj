@@ -126,8 +126,9 @@
                                    :payload-hash v4/unsigned-payload}))))))
 
 (deftest signing-key-chain-shape
-  (let [{:keys [secret steps]} (v4/signing-key-chain secret "20130524" "us-east-1")]
-    (is (= "AWS4wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" secret))
+  (let [{:keys [seed steps]} (v4/signing-key-chain secret "20130524" "us-east-1")]
+    (is (= "AWS4wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" seed)
+        "the ladder seeds from the prefixed secret, never the bare one")
     (is (= ["20130524" "us-east-1" "s3" "aws4_request"] steps))))
 
 (deftest authorization-header-format

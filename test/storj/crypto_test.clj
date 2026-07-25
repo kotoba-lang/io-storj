@@ -24,8 +24,8 @@
            (p/-sha256-hex c "日本語")))))
 
 (defn- signing-key [secret short-date region]
-  (let [{:keys [secret steps]} (v4/signing-key-chain secret short-date region)]
-    (reduce (fn [k step] (p/-hmac c k step)) secret steps)))
+  (let [{:keys [seed steps]} (v4/signing-key-chain secret short-date region)]
+    (reduce (fn [k step] (p/-hmac c k step)) seed steps)))
 
 (deftest aws-reference-signature
   (testing "the SHA-256 of AWS's documented canonical request"

@@ -44,10 +44,13 @@
          extra))
 
 (defn- derive-signature
-  "Fold the HMAC ladder and sign `sts`. → hex signature (or a thenable of one)."
-  [crypto secret short-date region sts]
-  (let [{:keys [secret steps]} (v4/signing-key-chain secret short-date region)]
-    (then (reduce (fn [k step] (then k #(p/-hmac crypto % step))) secret steps)
+  "Fold the HMAC ladder and sign `sts`. → hex signature (or a thenable of one).
+
+  `:seed` is the `\"AWS4\"`-prefixed secret and `:steps` the four ladder inputs;
+  `storj.sigv4` names them so this fold never has to know the order."
+  [crypto secret-key short-date region sts]
+  (let [{:keys [seed steps]} (v4/signing-key-chain secret-key short-date region)]
+    (then (reduce (fn [k step] (then k #(p/-hmac crypto % step))) seed steps)
           (fn [signing-key]
             (then (p/-hmac crypto signing-key sts)
                   #(p/-hex crypto %))))))
