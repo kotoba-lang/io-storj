@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "scripts": {
+    "verify:cljs": "nbb scripts/verify-cljs.cljs"
+  }
+}
