@@ -1,5 +1,6 @@
-;; AWS SigV4 lives in kotoba-lang/sigv4 — this workspace had eight copies of it
-;; before that library existed, and they had already diverged (see its README).
+;; AWS SigV4 lives in kotoba-lang/sigv4 — this workspace had six copies of it
+;; before that library existed, and they had already diverged (see its README,
+;; which also records why the count was first reported as eight).
 ;; No other runtime dependency: SHA-256 and HMAC are on every target runtime
 ;; already, so an AWS SDK would trade a portable library for a JVM-or-Node-only
 ;; one. See README "Why no AWS SDK".
