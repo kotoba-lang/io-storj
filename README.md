@@ -61,6 +61,48 @@ the wire:
 ;; => "https://link.storjshare.io/raw/jw…/assets/img/logo.png"
 ```
 
+## Bytes by reference
+
+`storj.core` is shaped for S3 — keys, ranges, content types, response maps,
+404 as a status. A consumer that only wants bytes by reference has to
+translate all of it, and every one of them translates it slightly
+differently: some cannot tell *this object is gone* from *this request
+failed*.
+
+`storj.store` does that translation once and returns a plain map of four
+functions:
+
+```clojure
+(store/store-fns client {:now #(iso-instant) :prefix "drive/acme/"})
+;; {:get-object f :put-object f :delete-object f :exists? f}
+```
+
+Nothing in it names a consumer. `kotoba-lang/drive`'s `drive.object/store-of`
+takes exactly this shape, and neither library depends on the other — whoever
+builds the store depends on both, and that is the application.
+
+Three things it settles at the edge rather than at every call site:
+
+- **A 404 is `nil`, and an empty object is `[]`.** Pulling `:body` before that
+  distinction makes them the same answer, and a consumer deciding whether its
+  own records are wrong needs to tell them apart.
+- **Bytes are a vector of unsigned ints, both ways.** The signer hashes a byte
+  array; every byte handler in this workspace passes vectors. Connecting the
+  two without converting throws out of the crypto layer, which is how this was
+  found.
+- **A clock is required rather than defaulted.** `sign` reads no clock on
+  purpose — a signer that took the time from the machine could not be checked
+  against AWS's fixed vectors — and defaulting to one here would undo that a
+  layer up.
+
+On a JVM these return values; in a browser they return promises, because
+`then` is identity application on one and `.then` on the other. A consumer
+whose own interface is synchronous can use them directly on a JVM and needs
+its own boundary on JS. The nbb parity script covers the promise path, since
+that is the half a green JVM suite says nothing about.
+
+**No live request has been made against a gateway from this code.**
+
 ## Design
 
 **The library performs zero network I/O and computes zero digests.** It builds
