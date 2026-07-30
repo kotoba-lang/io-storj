@@ -39,6 +39,19 @@
   (let [{:keys [fns]} (fns-with [{:status 200 :headers {} :body [1 2 3]}])]
     (is (= [1 2 3] ((:get-object fns) "obj-1")))))
 
+(deftest a-transport-body-is-converted-and-not-merely-passed-along
+  ;; The stub above hands back a vector, so it says nothing about the
+  ;; conversion: removing it entirely left every test here green. What a real
+  ;; transport returns is a host container, and on the JVM that container is
+  ;; signed — 0xC8 arrives as -56 and reaches a consumer as a negative number
+  ;; unless something converts it.
+  (let [body #?(:clj  (byte-array [7 8 -56])
+                :cljs (js/Uint8Array.from #js [7 8 200]))
+        {:keys [fns]} (fns-with [{:status 200 :headers {} :body body}])
+        got ((:get-object fns) "obj-1")]
+    (is (vector? got) "a consumer gets a vector, not the transport's container")
+    (is (= [7 8 200] got) "and the byte above 127 is unsigned")))
+
 (deftest a-missing-object-is-nil-and-not-a-status
   ;; a consumer deciding whether its own records are wrong needs to tell a
   ;; missing object from a failed request
