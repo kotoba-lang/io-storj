@@ -26,7 +26,8 @@
          '[sigv4.crypto :as crypto]
          '[sigv4.protocols :as p]
          '[storj.core :as storj]
-         '[storj.protocols :as http])
+         '[storj.protocols :as http]
+         '[storj.store :as store])
 
 (def failures (atom 0))
 
@@ -91,10 +92,50 @@
          (:keys (storj/parse-list-result "<Contents><Key>docs/b &amp; c.txt</Key></Contents>")))
   (js/Promise.resolve nil))
 
+;; ── storj.store, whose sync/async duality only shows up on this side ────────
+;;
+;; On a JVM `then` is identity application and every one of these functions
+;; returns a value; here each returns a Promise. The JVM suite says nothing
+;; about that composition — which is the whole reason this script exists — and
+;; `storj.store` has its own copy of `then`, so it has its own way to be wrong.
+
+(defrecord ScriptedHttp [responses]
+  http/IHttp
+  (-request [_ _]
+    (let [r (first @responses)]
+      (swap! responses rest)
+      ;; a Clojure map, not clj->js: the library reads :status with a keyword
+      (js/Promise.resolve r))))
+
+(defn- fns-for [responses]
+  (-> (storj/client {:bucket "my-bucket" :access-key "jwtest" :secret-key "supersecret"}
+                    {:crypto c :http (->ScriptedHttp (atom responses))})
+      (store/store-fns {:now (constantly "2026-07-25T12:00:00.000Z")
+                        :prefix "drive/"})))
+
+(defn check-store []
+  (let [found   ((:get-object (fns-for [{:status 200 :headers {} :body [1 2 250]}])) "obj-1")
+        missing ((:get-object (fns-for [{:status 404 :headers {} :body nil}])) "gone")
+        empty   ((:get-object (fns-for [{:status 200 :headers {} :body []}])) "empty")
+        present ((:exists?    (fns-for [{:status 200 :headers {} :body nil}])) "obj-1")
+        absent  ((:exists?    (fns-for [{:status 404 :headers {} :body nil}])) "gone")]
+    (check "store fns return promises here, not values" true (instance? js/Promise found))
+    (-> found
+        (.then #(check "a get resolves to a vector of unsigned ints" [1 2 250] %))
+        (.then (fn [_] missing))
+        (.then #(check "a 404 resolves to nil rather than a status" nil %))
+        (.then (fn [_] empty))
+        (.then #(check "an empty object is not a missing one" [] %))
+        (.then (fn [_] present))
+        (.then #(check "exists? resolves true" true %))
+        (.then (fn [_] absent))
+        (.then #(check "exists? resolves false" false %)))))
+
 (println "storj — ClojureScript / WebCrypto parity check (nbb)\n")
 (-> (js/Promise.resolve nil)
     (.then check-pure)
     (.then check-client)
+    (.then check-store)
     (.then (fn [_]
              (println)
              (if (zero? @failures)
