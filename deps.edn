@@ -5,7 +5,12 @@
 ;; already, so an AWS SDK would trade a portable library for a JVM-or-Node-only
 ;; one. See README "Why no AWS SDK".
 {:paths ["src"]
- :deps {io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}}
+ :deps {io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}
+        ;; what a byte is — storj.store carried a private copy of this
+        ;; until kotoba.bytes was made to enforce what its README stated.
+        io.github.kotoba-lang/bytes
+        {:git/url "https://github.com/kotoba-lang/bytes.git"
+         :git/sha "96ac992c7b0da54af41e8d40eaf23a4541a23d09"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner

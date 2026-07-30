@@ -33,6 +33,15 @@
   contract rather than a convenience, so a caller who wants the S3 shapes uses
   `storj.core` directly, which is what it is for.
 
+  What that vector *is* comes from `kotoba.bytes`, which is the library the
+  word belongs to and had already written this down. This namespace carried
+  its own copy for as long as it existed, as did `drive.object`,
+  `storj.node.bytes` and `multiformats` — four private answers to a question
+  answered in a shared library's README, which is the arrangement where they
+  drift and nothing notices. The read direction is now `kotoba.bytes/->bytes`;
+  the write direction stays local because it is a host-container question
+  (see `->host-body`).
+
   ## Synchronous on the JVM, thenable on JS
 
   `storj.core`'s `then` is identity application on `:clj` and `.then` on
@@ -41,7 +50,8 @@
   because a workspace is a value and its permission checks are pure — can use
   these directly on a JVM and needs its own boundary on JS. Said here rather
   than discovered there."
-  (:require [storj.core :as core]))
+  (:require [kotoba.bytes :as b]
+            [storj.core :as core]))
 
 (defn- fail [msg data]
   (throw (ex-info (str "storj.store: " msg) data)))
@@ -55,8 +65,16 @@
   #?(:clj  (f v)
      :cljs (.then (js/Promise.resolve v) f)))
 
-(defn- ->bytes
+(defn- ->host-body
   "A vector of unsigned ints → what the signer can hash.
+
+  The opposite direction from `kotoba.bytes/->bytes`, and deliberately not
+  folded into it: which container is right here is a host question — a JVM
+  signer wants `byte[]`, `fetch` wants a `Uint8Array`, Node's fs wants a
+  `Buffer` — and a library that answers it centrally would have to pick one
+  and be wrong for the others. It was named `->bytes` until `kotoba.bytes`
+  gave that name the opposite meaning; two functions with one name pointing
+  in two directions is how a workspace ends up converting twice or not at all.
 
   Strings and existing byte containers pass through: a caller handing this a
   string means a string, and re-encoding one would change what was signed."
@@ -66,14 +84,6 @@
     (sequential? body) #?(:clj  (byte-array (map unchecked-byte body))
                           :cljs (js/Uint8Array.from (into-array body)))
     :else body))
-
-(defn- ->ints
-  "Whatever the transport returned → a vector of unsigned ints."
-  [body]
-  (when (some? body)
-    (if (sequential? body)
-      (vec body)
-      (mapv #(bit-and (int %) 0xff) (seq body)))))
 
 (defn object-key
   "The S3 key an object reference becomes.
@@ -106,11 +116,11 @@
      ;; missing object and an empty one the same answer, and a consumer
      ;; deciding whether its own records are wrong needs to tell them apart.
      (then (core/get-object client {:key (object-key prefix ref) :now (now)})
-           #(some-> % :body ->ints)))
+           #(some-> % :body b/->bytes)))
 
    :put-object
    (fn [ref bytes]
-     (core/put-object client {:key (object-key prefix ref) :body (->bytes bytes)
+     (core/put-object client {:key (object-key prefix ref) :body (->host-body bytes)
                               :now (now) :content-type content-type}))
 
    :delete-object

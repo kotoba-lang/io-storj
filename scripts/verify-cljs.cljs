@@ -115,6 +115,11 @@
 
 (defn check-store []
   (let [found   ((:get-object (fns-for [{:status 200 :headers {} :body [1 2 250]}])) "obj-1")
+        ;; what a real transport hands back here, as opposed to the vector the
+        ;; stub above uses — a Uint8Array is not a vector and not sequential?
+        typed   ((:get-object (fns-for [{:status 200 :headers {}
+                                         :body (js/Uint8Array.from #js [7 8 200])}]))
+                 "typed")
         missing ((:get-object (fns-for [{:status 404 :headers {} :body nil}])) "gone")
         empty   ((:get-object (fns-for [{:status 200 :headers {} :body []}])) "empty")
         present ((:exists?    (fns-for [{:status 200 :headers {} :body nil}])) "obj-1")
@@ -122,6 +127,10 @@
     (check "store fns return promises here, not values" true (instance? js/Promise found))
     (-> found
         (.then #(check "a get resolves to a vector of unsigned ints" [1 2 250] %))
+        (.then (fn [_] typed))
+        (.then (fn [v]
+                 (check "a Uint8Array body becomes a vector too" [7 8 200] v)
+                 (check "and it really is a vector, not the container" true (vector? v))))
         (.then (fn [_] missing))
         (.then #(check "a 404 resolves to nil rather than a status" nil %))
         (.then (fn [_] empty))
