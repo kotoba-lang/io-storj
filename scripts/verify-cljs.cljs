@@ -21,7 +21,7 @@
 ;;
 ;;   nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs
 
-(require '[clojure.string :as str]
+(require '[kotoba.lang.text :as str]
          '[sigv4.core :as v4]
          '[sigv4.crypto :as crypto]
          '[sigv4.protocols :as p]
