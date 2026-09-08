@@ -13,7 +13,7 @@
   consequence for callers: on the JVM these functions return values, on
   ClojureScript they return Promises of the same values — the shape is
   identical, only the wrapper differs. That mirrors `kotoba.lang.ipfs`."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [sigv4.protocols :as p]
             [sigv4.request :as sigv4]
             [storj.gateway :as gw]
