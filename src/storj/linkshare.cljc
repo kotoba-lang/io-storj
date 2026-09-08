@@ -17,7 +17,7 @@
 
   Create the restricted key with `uplink share --readonly --url --not-after …`
   (or the satellite UI) and pass the resulting access key here."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [sigv4.core :as v4]))
 
 (def endpoints

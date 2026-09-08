@@ -9,7 +9,7 @@
   Pure `.cljc`: validation returns/throws on data you hand it, nothing is read
   from the environment here. Hosts that want env-driven config build the config
   map themselves and pass it to `validate`."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (def endpoints
   "Known Storj Gateway-MT S3 endpoints.
@@ -68,8 +68,8 @@
         m (re-matches #"(?i)(https?)://([a-z0-9._-]+(?::\d+)?)" s)]
     (when-not m (fail (str "endpoint must be an origin-only http(s) URL without "
                            "credentials, path, query, or fragment: " raw)))
-    {:scheme (str/lower-case (nth m 1))
-     :host   (str/lower-case (nth m 2))
+    {:scheme (str/lower (nth m 1))
+     :host   (str/lower (nth m 2))
      :origin s}))
 
 (defn- validate-bucket [v]

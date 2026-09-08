@@ -11,7 +11,7 @@
   JVM-only, because `storj.core/then` is identity-application here and the whole
   pipeline reads synchronously. The ClojureScript/Promise path is covered by
   `scripts/verify-cljs.cljs`."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [clojure.test :refer [deftest is testing]]
             [sigv4.crypto :as crypto]
             [storj.core :as storj]

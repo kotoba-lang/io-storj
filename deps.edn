@@ -5,7 +5,12 @@
 ;; already, so an AWS SDK would trade a portable library for a JVM-or-Node-only
 ;; one. See README "Why no AWS SDK".
 {:paths ["src"]
- :deps {io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}
+ :deps {
+        ;; kotoba.lang.text, not clojure.string. Pinned as an explicit floor:
+        ;; tools.deps takes the NEWEST sha it is shown, so without a floor here
+        ;; this repo silently rides whatever a sibling happens to name.
+        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}
+       io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}
         ;; what a byte is — storj.store carried a private copy of this
         ;; until kotoba.bytes was made to enforce what its README stated.
         io.github.kotoba-lang/bytes
