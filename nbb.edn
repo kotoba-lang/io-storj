@@ -1,7 +1,12 @@
+;; nbb reads this file and does NOT read deps.edn.
+;;
+;; EVERY git coordinate from deps.edn is copied, not the subset the entry
+;; points name: the namespace they need arrives transitively, and
+;; tools.deps resolves that chain while nbb does not. The Maven
+;; coordinates are left out because nbb does not resolve them.
+;;
+;; :paths and every sha are COPIED, not chosen here.
 {:paths ["src"]
- :deps {
-        ;; Declared HERE and not only in deps.edn: nbb reads nbb.edn and does NOT
-        ;; read deps.edn or bb.edn, and the .cljs in this repo are run as
-        ;; bare `nbb <file>`. A coordinate they cannot see is not a
-        ;; declaration. sha and :paths are COPIED from deps.edn.
-        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}}}
+ :deps {io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}
+        io.github.kotoba-lang/sigv4 {:git/sha "477e2b0c183f0e2cbefa2488e7f9133775d2840d"}
+        io.github.kotoba-lang/bytes {:git/url "https://github.com/kotoba-lang/bytes.git" :git/sha "96ac992c7b0da54af41e8d40eaf23a4541a23d09"}}}
