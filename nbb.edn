@@ -1,1 +1,7 @@
-{:paths ["src"]}
+{:paths ["src"]
+ :deps {
+        ;; Declared HERE and not only in deps.edn: nbb reads nbb.edn and does NOT
+        ;; read deps.edn or bb.edn, and the .cljs in this repo are run as
+        ;; bare `nbb <file>`. A coordinate they cannot see is not a
+        ;; declaration. sha and :paths are COPIED from deps.edn.
+        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}}}
