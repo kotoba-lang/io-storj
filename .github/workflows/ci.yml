@@ -34,4 +34,4 @@ jobs:
           cli: latest
       - run: npm install -g nbb
       # sigv4 is a git dep — nbb needs the resolved classpath to see it.
-      - run: nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs
+      - run: nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljk

@@ -1,6 +1,6 @@
 {
   "private": true,
   "scripts": {
-    "verify:cljs": "nbb --classpath \"$(clojure -Spath)\" scripts/verify-cljs.cljs"
+    "verify:cljs": "nbb --classpath \"$(clojure -Spath)\" scripts/verify-cljs.cljk"
   }
 }
