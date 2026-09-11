@@ -1,7 +1,7 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 ;; verify-cljs.cljs — two-runtime parity check.
 ;;
-;; `clojure -M:test` proves the library on the JVM, where `storj.core/then` is
+;; `kbb -M:test` proves the library on the JVM, where `storj.core/then` is
 ;; identity-application and every crypto call returns a value. That leaves the
 ;; half that actually ships to browsers and Workers untested: WebCrypto is
 ;; Promise-based, so the *same* code takes a completely different path through
@@ -19,7 +19,7 @@
 ;;
 ;; The library is a git dep, so nbb needs it on the classpath:
 ;;
-;;   nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljk
+;;   kbb --backend sci --classpath "$(kbb -Spath)" scripts/verify-cljs.cljk
 
 (require '[kotoba.lang.text :as str]
          '[sigv4.core :as v4]

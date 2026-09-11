@@ -147,16 +147,16 @@ output back to us.
   `core_test` were produced by a separate implementation driven straight from
   the spec, not captured from this library — so they also pin the composition
   of this library over the signer.
-- **Two-runtime parity.** `clojure -M:test` covers the JVM. WebCrypto is
+- **Two-runtime parity.** `kbb -M:test` covers the JVM. WebCrypto is
   asynchronous and therefore takes a *different path through `then`*, so a green
   JVM suite says nothing about the code that ships to browsers and Workers.
   `scripts/verify-cljs.cljk` re-runs the load-bearing assertions on
   `crypto.subtle` and must produce byte-identical signatures. Both run in CI.
 
 ```bash
-clojure -M:test                                          # JVM
-nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljk   # ClojureScript / WebCrypto
-clojure -M:lint
+kbb -M:test                                          # JVM
+kbb --backend sci --classpath "$(kbb -Spath)" scripts/verify-cljs.cljk   # ClojureScript / WebCrypto
+kbb -M:lint
 ```
 
 `sigv4` is a git dep, so nbb needs the resolved classpath.
