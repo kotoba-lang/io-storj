@@ -150,12 +150,12 @@ output back to us.
 - **Two-runtime parity.** `clojure -M:test` covers the JVM. WebCrypto is
   asynchronous and therefore takes a *different path through `then`*, so a green
   JVM suite says nothing about the code that ships to browsers and Workers.
-  `scripts/verify-cljs.cljs` re-runs the load-bearing assertions on
+  `scripts/verify-cljs.cljk` re-runs the load-bearing assertions on
   `crypto.subtle` and must produce byte-identical signatures. Both run in CI.
 
 ```bash
 clojure -M:test                                          # JVM
-nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs   # ClojureScript / WebCrypto
+nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljk   # ClojureScript / WebCrypto
 clojure -M:lint
 ```
 

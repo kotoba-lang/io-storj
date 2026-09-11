@@ -19,7 +19,7 @@
 ;;
 ;; The library is a git dep, so nbb needs it on the classpath:
 ;;
-;;   nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljs
+;;   nbb --classpath "$(clojure -Spath)" scripts/verify-cljs.cljk
 
 (require '[kotoba.lang.text :as str]
          '[sigv4.core :as v4]
