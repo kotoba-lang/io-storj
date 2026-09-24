@@ -12,7 +12,7 @@
   pipeline reads synchronously. The ClojureScript/Promise path is covered by
   `scripts/verify-cljs.cljk`."
   (:require [kotoba.lang.text :as str]
-            [clojure.test :refer [deftest is testing]]
+            [kotoba.test :refer [deftest is testing]]
             [sigv4.crypto :as crypto]
             [storj.core :as storj]
             [storj.protocols :as p]))

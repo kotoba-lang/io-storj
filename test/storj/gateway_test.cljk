@@ -1,5 +1,5 @@
 (ns storj.gateway-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [storj.gateway :as gw]))
 
 (def base {:bucket "my-bucket" :access-key "jwabc123" :secret-key "s3cr3t"})
