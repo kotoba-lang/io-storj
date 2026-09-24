@@ -1,6 +1,6 @@
 (ns storj.linkshare-test
   (:require [kotoba.lang.text :as str]
-            [clojure.test :refer [deftest is testing]]
+            [kotoba.test :refer [deftest is testing]]
             [storj.linkshare :as ls]))
 
 (def opts {:access-key "jwabc123" :bucket "assets" :key "img/logo.png"})

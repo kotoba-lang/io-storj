@@ -5,7 +5,7 @@
   be inspected without one. What is checked is that the S3 shape is translated
   and not leaked — a 404 becomes nil rather than a status, a response becomes
   bytes rather than a map, and the key carries its prefix."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [sigv4.crypto :as crypto]
             [storj.core :as core]
             [storj.protocols :as p]
